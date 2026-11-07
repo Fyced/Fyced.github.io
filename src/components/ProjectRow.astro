@@ -1,0 +1,133 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { formatDate } from "../lib/log";
+
+interface Props {
+  project: CollectionEntry<"projects">;
+  entries: number; // nº de entradas del diario
+  updated?: Date; // fecha de la última entrada
+}
+const { project, entries, updated } = Astro.props;
+const { title, order, year, tags, status, summary, links, featured } = project.data;
+const index = String(order).padStart(2, "0");
+---
+
+<details class:list={["row", { "row--featured": featured }]} id={project.id} name="projects">
+  <summary class="grid row__summary">
+    {
+      featured ? (
+        <svg class="star" viewBox="0 0 24 24" role="img" aria-label="Featured">
+          <path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z" />
+        </svg>
+      ) : (
+        <span class="mono dim">{index}</span>
+      )
+    }
+    <span>{title}</span>
+    <span class="dim col-tags">{tags.join(" · ")}</span>
+    <span class="mono status" data-status={status}>{status}</span>
+    <span class="mono dim col-year">{year}</span>
+    <svg class="arrow" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M2 12h19M14 5l7 7-7 7"></path>
+    </svg>
+  </summary>
+
+  <div class="row__body">
+    <p class="row__text">{summary}</p>
+    {
+      entries > 0 && updated && (
+        <p class="mono dim row__meta">
+          {entries} {entries === 1 ? "log entry" : "log entries"}, last on {formatDate(updated)}
+        </p>
+      )
+    }
+    <ul class="row__links">
+      <li><a class="row__open" href={`/projects/${project.id}/`}>Open project page</a></li>
+      {links?.github && (
+        <li><a href={links.github} target="_blank" rel="noopener">GitHub ↗</a></li>
+      )}
+      {links?.demo && (
+        <li><a href={links.demo} target="_blank" rel="noopener">Demo ↗</a></li>
+      )}
+    </ul>
+  </div>
+</details>
+
+<style>
+  .row { border-top: 1px solid var(--line); }
+
+  .row--featured {
+    background: color-mix(in srgb, var(--fg) 6%, transparent);
+    box-shadow: inset 2px 0 0 var(--fg);
+  }
+  .star {
+    width: 1rem;
+    height: 1rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.25;
+    stroke-linejoin: round;
+  }
+
+  .row__summary {
+    cursor: pointer;
+    list-style: none;
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .row__summary::-webkit-details-marker { display: none; }
+
+  .row__summary:hover { background: var(--fg); color: var(--bg); }
+  .row__summary:hover .dim,
+  .row__summary:hover .status { color: inherit; }
+
+  .status { text-transform: uppercase; letter-spacing: 0.04em; }
+  .status[data-status="exploring"],
+  .status[data-status="research"] { color: var(--dim); }
+  .status[data-status="paused"] { color: var(--dim); }
+  .status[data-status="finished"]::before { content: "✓ "; }
+
+  .arrow {
+    justify-self: end;
+    width: 1.4rem;
+    height: 1.4rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.25;
+    transition: transform 0.3s ease;
+  }
+  .row[open] .arrow { transform: rotate(90deg); }
+
+  .row::details-content {
+    block-size: 0;
+    overflow: clip;
+    transition: block-size 0.35s ease, content-visibility 0.35s allow-discrete;
+  }
+  .row[open]::details-content { block-size: auto; }
+
+  .row__body {
+    padding: 0.75rem var(--pad) 2rem calc(var(--pad) + 3.5rem);
+  }
+  .row__text { max-width: 40rem; margin: 0; }
+  .row__meta { margin: 0.75rem 0 0; }
+
+  .row__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.5rem;
+    align-items: center;
+    margin: 1.5rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  /* El enlace a la página completa es el principal: va como botón con borde */
+  .row__open {
+    display: inline-block;
+    padding: 0.45rem 0.9rem;
+    border: 1px solid var(--line);
+  }
+  .row__open:hover { background: var(--fg); color: var(--bg); text-decoration: none; }
+
+  @media (max-width: 700px) {
+    .row__body { padding-left: calc(var(--pad) + 3rem); }
+  }
+</style>

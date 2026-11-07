@@ -1,0 +1,226 @@
+---
+import { getCollection, render, type CollectionEntry } from "astro:content";
+import Base from "../../layouts/Base.astro";
+import Header from "../../components/Header.astro";
+import Perspective from "../../components/Perspective.astro";
+import { getProjectLog, formatDate, isoDate } from "../../lib/log";
+import { site } from "../../data/site";
+
+// Astro crea una página /projects/<id>/ por cada proyecto de la colección
+export async function getStaticPaths() {
+  const projects = await getCollection("projects");
+  return projects.map((project) => ({
+    params: { slug: project.id },
+    props: { project },
+  }));
+}
+
+interface Props {
+  project: CollectionEntry<"projects">;
+}
+const { project } = Astro.props;
+const { title, year, tags, status, beforeWebsite, summary, links } = project.data;
+const { Content } = await render(project); // explicación larga (cuerpo del .md)
+
+const log = await getProjectLog(project.id);
+const entries = await Promise.all(
+  log.map(async (entry, i) => ({
+    entry,
+    slug: entry.id.split("/").pop(),
+    number: log.length - i,
+    Content: (await render(entry)).Content,
+  })),
+);
+---
+
+<Base title={`${title} — ${site.name}`} description={summary}>
+  <Perspective height="5rem" inset={12} />
+  <Header />
+  <Perspective />
+
+  <main>
+    <section class="box intro">
+      <a class="back dim" href={`/#${project.id}`}>← All projects</a>
+      <h1>{title}</h1>
+      <p class="intro__summary">{summary}</p>
+    </section>
+
+    <dl class="box facts">
+      <div class="facts__row">
+        <dt class="dim">status</dt>
+        <dd class="mono status" data-status={status}>{status}</dd>
+      </div>
+      <div class="facts__row">
+        <dt class="dim">stack</dt>
+        <dd>{tags.join(" · ")}</dd>
+      </div>
+      <div class="facts__row">
+        <dt class="dim">year</dt>
+        <dd class="mono">{year}</dd>
+      </div>
+      {
+        (links?.github || links?.demo) && (
+          <div class="facts__row">
+            <dt class="dim">links</dt>
+            <dd class="facts__links">
+              {links?.github && <a href={links.github} target="_blank" rel="noopener">GitHub ↗</a>}
+              {links?.demo && <a href={links.demo} target="_blank" rel="noopener">Demo ↗</a>}
+            </dd>
+          </div>
+        )
+      }
+    </dl>
+
+    <section class="box overview">
+      <div class="prose"><Content /></div>
+    </section>
+
+    <section class="box log" aria-labelledby="log-title">
+      <header class="log__head">
+        {beforeWebsite && (
+          <p class="log__note">
+            This project started before this website existed. Progress made before then isn't documented here.
+          </p>
+        )}
+        <h2 id="log-title">Log</h2>
+        <span class="mono dim">
+          {log.length} {log.length === 1 ? "entry" : "entries"}
+        </span>
+      </header>
+
+      {
+        entries.length === 0 ? (
+          <p class="log__empty dim">No entries yet.</p>
+        ) : (
+          <ol class="timeline">
+            {entries.map(({ entry, slug, number, Content }) => (
+              <li class="entry" id={slug} data-type={entry.data.type}>
+                <div class="entry__meta">
+                  <time class="mono" datetime={isoDate(entry.data.date)}>
+                    {formatDate(entry.data.date)}
+                  </time>
+                  <span class="mono dim">#{number}</span>
+                  <span class="mono entry__type">{entry.data.type}</span>
+                </div>
+                <div class="entry__body">
+                  <h3>
+                    <a href={`#${slug}`}>{entry.data.title}</a>
+                  </h3>
+                  <div class="prose"><Content /></div>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )
+      }
+    </section>
+  </main>
+</Base>
+
+<style>
+  /* ---------- Cabecera del proyecto ---------- */
+  .intro { padding: clamp(1.5rem, 5vw, 3rem) var(--pad); }
+  .back { display: inline-block; margin-bottom: 1.5rem; }
+  h1 {
+    margin: 0 0 1rem;
+    font-size: clamp(2rem, 6vw, 3.25rem);
+    font-weight: 400;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+  }
+  .intro__summary { max-width: 36rem; margin: 0; color: var(--dim); }
+
+  /* ---------- Ficha: mismas filas que la lista de la home ---------- */
+  .facts { margin: 0; }
+  .facts__row {
+    display: grid;
+    grid-template-columns: 6rem minmax(0, 1fr);
+    gap: 1rem;
+    align-items: center;
+    min-height: 3.25rem;
+    padding: 0 var(--pad);
+  }
+  .facts__row + .facts__row { border-top: 1px solid var(--line); }
+  .facts dd { margin: 0; }
+  .facts__links { display: flex; gap: 1.5rem; }
+  .status { text-transform: uppercase; letter-spacing: 0.04em; }
+  .status[data-status="finished"]::before { content: "✓ "; }
+
+  .overview { padding: 2rem var(--pad) 2.5rem; }
+
+  /* ---------- Diario ---------- */
+  .log__note {
+    margin: 0;
+    padding: 1rem var(--pad);
+    border-bottom: 1px solid var(--line);
+    color: #e57373
+  }
+
+  .log__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 3.25rem;
+    padding: 0 var(--pad);
+    border-bottom: 1px solid var(--line);
+  }
+  .log__head h2 { margin: 0; font-size: 1rem; font-weight: 400; }
+  .log__empty { margin: 0; padding: 2rem var(--pad); }
+
+  .timeline { list-style: none; margin: 0; padding: 2.5rem var(--pad) 1rem; }
+
+  .entry {
+    display: grid;
+    grid-template-columns: 8.5rem minmax(0, 1fr);
+  }
+  .entry__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding-right: 1.5rem;
+    line-height: 1.6;
+  }
+  .entry__type { text-transform: uppercase; letter-spacing: 0.04em; color: var(--dim); }
+  .entry[data-type="problem"] .entry__type,
+  .entry[data-type="milestone"] .entry__type { color: var(--fg); }
+
+  /* La línea vertical del timeline + el marcador de cada entrada */
+  .entry__body {
+    position: relative;
+    padding: 0 0 2.75rem 1.75rem;
+    border-left: 1px solid var(--line);
+  }
+  .entry:last-child .entry__body { padding-bottom: 1.5rem; }
+  .entry__body::before {
+    content: "";
+    position: absolute;
+    top: 0.35rem;
+    left: -0.3rem;
+    width: 0.6rem;
+    height: 0.6rem;
+    background: var(--bg);
+    border: 1px solid var(--fg);
+  }
+  .entry[data-type="milestone"] .entry__body::before { background: var(--fg); }
+  .entry[data-type="problem"] .entry__body::before { transform: rotate(45deg); }
+
+  .entry h3 {
+    margin: 0 0 0.75rem;
+    font-size: 1.15rem;
+    font-weight: 400;
+    line-height: 1.3;
+  }
+  .entry h3 a:hover { text-decoration: none; opacity: 0.75; }
+  .entry:target h3 { text-decoration: underline; text-underline-offset: 4px; }
+
+  @media (max-width: 700px) {
+    .entry { grid-template-columns: minmax(0, 1fr); }
+    .entry__meta {
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 0 0.9rem;
+      padding: 0 0 0.6rem 1.75rem;
+      border-left: 1px solid var(--line);
+    }
+  }
+</style>

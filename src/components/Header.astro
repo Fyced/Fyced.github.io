@@ -1,0 +1,28 @@
+---
+import { site } from "../data/site";
+---
+
+<header class="bar">
+  <a href="/" class="bar__name">{site.name} — Portfolio</a>
+  <nav class="bar__nav" aria-label="Main">
+    <a href="/#about">About this website</a>
+    <a href={site.links.github} target="_blank" rel="noopener">GitHub ↗</a>
+    <a href={site.links.linkedin} target="_blank" rel="noopener">LinkedIn ↗</a>
+  </nav>
+</header>
+
+<style>
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 3.25rem;
+    padding: 0 var(--pad);
+    border: 1px solid var(--line);
+  }
+  .bar__nav { display: flex; gap: 1.5rem; }
+  @media (max-width: 500px) {
+    .bar__nav { gap: 0.9rem; font-size: 0.9rem; }
+  }
+</style>

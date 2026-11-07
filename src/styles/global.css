@@ -1,0 +1,102 @@
+:root {
+  --bg: #000;
+  --fg: #ededed;                                         /* blanco */
+  --live: #39ff14;                                        
+  --dim: color-mix(in srgb, var(--fg) 50%, transparent);  /* texto secundario */
+  --line: color-mix(in srgb, var(--fg) 75%, transparent); /* líneas de 1px */
+  --pad: clamp(0.75rem, 2.5vw, 1rem);
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  color-scheme: dark;
+  interpolate-size: allow-keywords; /* permite animar height: auto (desplegables) */
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+}
+
+body { margin: 0; line-height: 1.5; }
+
+a { color: inherit; text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+::selection { background: var(--fg); color: var(--bg); }
+:focus-visible { outline: 1px solid var(--fg); outline-offset: 3px; }
+
+/* ---------- Utilidades ---------- */
+.frame { max-width: 60rem; margin-inline: auto; padding: 0 var(--pad) 4rem; }
+.box { border: 1px solid var(--line); }
+.box + .box { border-top: 0; } /* evita bordes dobles entre cajas apiladas */
+.mono { font-family: var(--font-mono); font-size: 0.8rem; }
+.dim { color: var(--dim); }
+
+/* Rejilla compartida: la cabecera de la lista y cada fila usan las mismas columnas,
+   así todo queda alineado. Orden: nº · proyecto · stack · estado · año · flecha */
+.grid {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1.3fr) minmax(0, 1.5fr) 6.5rem 3rem 1.5rem;
+  gap: 1rem;
+  align-items: center;
+  min-height: 3.25rem;
+  padding: 0 var(--pad);
+}
+
+@media (max-width: 700px) {
+  .grid { grid-template-columns: 2rem minmax(0, 1fr) 6rem 1.5rem; }
+  .col-tags, .col-year { display: none; }
+}
+
+/* ---------- Texto de los proyectos (viene del Markdown) ---------- */
+.prose { max-width: 46rem; }
+.prose h2 {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--dim);
+  margin: 1.75rem 0 0.4rem;
+}
+.prose h2:first-child { margin-top: 0; }
+.prose p, .prose ul { margin: 0 0 0.75rem; }
+.prose ul { padding-left: 1.1rem; }
+.prose a { text-decoration: underline; text-underline-offset: 3px; }
+.prose code { font-family: var(--font-mono); font-size: 0.9em; }
+.prose img { max-width: 100%; height: auto; border: 1px solid var(--line); }
+/* Tablas dentro del texto de los proyectos */
+.prose table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 0 0 1rem;
+  border-collapse: collapse;
+}
+.prose th,
+.prose td {
+  padding: 0.55rem 1.5rem 0.55rem 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.prose th { font-weight: 400; color: var(--dim); }
+.prose th:last-child,
+.prose td:last-child { padding-right: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after, ::details-content { transition: none !important; }
+}
+
+/* Bloques de código: sin el fondo gris por defecto, con el borde de la web */
+.prose pre {
+  margin: 0 0 0.75rem;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  background: transparent !important;
+  border: 1px solid var(--line);
+  font-size: 0.85rem;
+}

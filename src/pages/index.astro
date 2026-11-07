@@ -1,16 +1,105 @@
 ---
+import { getCollection } from "astro:content";
+import Base from "../layouts/Base.astro";
+import Header from "../components/Header.astro";
+import Perspective from "../components/Perspective.astro";
+import ProjectRow from "../components/ProjectRow.astro";
+import { getProjectLog } from "../lib/log";
+import { site } from "../data/site";
+import LatestUpdates from "../components/LatestUpdates.astro";
+
+const projects = (await getCollection("projects")).sort(
+  (a, b) =>
+    Number(b.data.featured) - Number(a.data.featured) || a.data.order - b.data.order,
+);
+
+// Para cada proyecto: cuántas entradas tiene su diario y cuándo fue la última
+const rows = await Promise.all(
+  projects.map(async (project) => {
+    const log = await getProjectLog(project.id);
+    return { project, entries: log.length, updated: log[0]?.data.date };
+  }),
+);
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<Base title={`${site.name} — Portfolio`} description={site.intro}>
+  <Perspective height="5rem" inset={12} />
+  <Header />
+  <Perspective />
+
+  <main>
+    <section class="box hero">
+      <p class="mono dim">{site.period}</p>
+      <h1>{site.tagline}</h1>
+      <p class="hero__intro">{site.intro}</p>
+      <div class="hero__live">
+        <LatestUpdates />
+      </div>
+    </section>
+    
+    <section class="box" aria-label="Projects">
+      <div class="grid dim" aria-hidden="true">
+        <span>nº</span>
+        <span>project</span>
+        <span class="col-tags">stack</span>
+        <span>status</span>
+        <span class="col-year">year</span>
+        <span></span>
+      </div>
+      {rows.map((row) => <ProjectRow {...row} />)}
+    </section>
+
+    <section id="about" class="box about">
+      <h2>About this website</h2>
+      <p>{site.about}</p>
+    </section>
+  </main>
+</Base>
+
+<script>
+  function openFromHash() {
+    const id = decodeURIComponent(location.hash.slice(1));
+    const el = id && document.getElementById(id);
+    if (el instanceof HTMLDetailsElement) {
+      el.open = true;
+      el.scrollIntoView({ block: "start" });
+    }
+  }
+  openFromHash();
+  window.addEventListener("hashchange", openFromHash);
+
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted) {
+      document.querySelectorAll("details.row[open]").forEach((row) => {
+        row.open = false;
+      });
+    }
+  });
+</script>
+
+<style>
+  .hero { position: relative; padding: clamp(1.75rem, 6vw, 3.5rem) var(--pad); }
+  .hero p { margin: 0; }
+  .hero__live {
+    position: absolute;
+    right: calc(var(--pad) + 2.5rem);
+    bottom: 1rem;
+  }
+
+  @media (max-width: 800px) {
+    .hero__live { position: static; margin-top: 1.5rem; }
+  }
+
+  h1 {
+    margin: 0.6rem 0 1rem;
+    font-size: clamp(2rem, 6vw, 3.25rem);
+    font-weight: 400;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+  }
+  .hero__intro { max-width: 34rem; color: var(--dim); }
+
+  .about { padding: 2rem var(--pad); }
+  .about h2 { margin: 0 0 0.5rem; font-size: 1rem; font-weight: 400; color: var(--dim); }
+  .about p { max-width: 40rem; margin: 0; }
+</style>

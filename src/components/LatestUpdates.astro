@@ -1,0 +1,177 @@
+---
+import { getCollection } from "astro:content";
+import { isoDate } from "../lib/log";
+
+const projects = await getCollection("projects");
+const titleOf = (id: string) => projects.find((p) => p.id === id)?.data.title ?? id;
+
+// Las 5 entradas más recientes de todos los proyectos
+const updates = (await getCollection("log"))
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+  .slice(0, 5)
+  .map((entry) => {
+    const [projectId, slug] = entry.id.split("/");
+    return {
+      date: entry.data.date,
+      title: entry.data.title,
+      project: titleOf(projectId),
+      href: `/projects/${projectId}/#${slug}`,
+    };
+  });
+
+const day = (d: Date) => String(d.getUTCDate()).padStart(2, "0");
+const month = (d: Date) => d.toLocaleString("en-GB", { month: "short", timeZone: "UTC" });
+---
+
+<button class="live" popovertarget="latest-updates">
+  <span class="live__dot" aria-hidden="true"></span>
+  Latest updates
+</button>
+
+<aside id="latest-updates" class="updates" popover aria-label="Latest updates">
+  <header class="updates__head">
+    <span>Latest updates</span>
+    <button
+      class="updates__close"
+      popovertarget="latest-updates"
+      popovertargetaction="hide"
+      aria-label="Close">×</button
+    >
+  </header>
+
+  {
+    updates.length === 0 ? (
+      <p class="updates__empty dim">No updates yet.</p>
+    ) : (
+      <ol class="updates__list">
+        {updates.map((u) => (
+          <li>
+            <a class="update" href={u.href}>
+              <time class="update__date" datetime={isoDate(u.date)}>
+                <span class="update__day">{day(u.date)}</span>
+                <span class="mono dim">{month(u.date)}</span>
+              </time>
+              <span class="update__text">
+                <span class="dim">{u.project}</span>
+                <span>{u.title}</span>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    )
+  }
+</aside>
+
+<style>
+  /* ---------- Botón ---------- */
+  .live {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.4rem 0.95rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--fg);
+    font: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .live:hover { background: var(--fg); color: var(--bg); }
+
+  .live__dot {
+    position: relative;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--live);
+    box-shadow: 0 0 6px var(--live);
+  }
+  /* Pulso: un círculo que crece y se desvanece en bucle */
+  .live__dot::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--live);
+    animation: pulse 2s ease-out infinite;
+  }
+  @keyframes pulse {
+    from { transform: scale(1); opacity: 0.7; }
+    to { transform: scale(2.6); opacity: 0; }
+  }
+
+  /* ---------- Panel ----------
+     Pantallas estrechas: panel lateral superpuesto que ocupa toda la altura. */
+  .updates {
+    position: fixed;
+    inset: 0 0 0 auto;
+    margin: 0;
+    width: min(22rem, 100vw);
+    height: 100%;
+    max-height: none;
+    padding: 0;
+    overflow-y: auto;
+    background: var(--bg);
+    color: var(--fg);
+    border: 0;
+    border-left: 1px solid var(--line);
+  }
+  .updates::backdrop { background: rgb(0 0 0 / 0.6); }
+
+  /* Pantallas anchas: el panel flota a la derecha, fuera del bloque principal */
+  @media (min-width: 1400px) {
+    .updates {
+      inset: auto;
+      top: 8.25rem;
+      left: calc(50% + 31rem);
+      width: min(20rem, calc(50vw - 32.5rem));
+      height: auto;
+      max-height: calc(100vh - 10rem);
+      border: 1px solid var(--line);
+    }
+    .updates::backdrop { background: transparent; }
+  }
+
+  .updates__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 3.25rem;
+    padding: 0 var(--pad);
+    border-bottom: 1px solid var(--line);
+  }
+  .updates__close {
+    padding: 0.25rem;
+    background: none;
+    border: 0;
+    color: inherit;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .updates__empty { margin: 0; padding: 1rem var(--pad); }
+
+  /* ---------- Entradas, estilo agenda ---------- */
+  .updates__list { list-style: none; margin: 0; padding: 0; }
+  .updates__list li + li { border-top: 1px solid var(--line); }
+
+  .update {
+    display: grid;
+    grid-template-columns: 2.75rem minmax(0, 1fr);
+    gap: 0.75rem;
+    padding: 0.9rem var(--pad);
+  }
+  .update:hover { background: var(--fg); color: var(--bg); text-decoration: none; }
+  .update:hover .dim { color: inherit; }
+
+  .update__date { display: flex; flex-direction: column; line-height: 1.1; }
+  .update__day { font-size: 1.6rem; font-weight: 300; }
+  .update__text { display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.95rem; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .live__dot::after { display: none; }
+  }
+</style>
