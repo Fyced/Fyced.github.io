@@ -7,7 +7,7 @@ const titleOf = (id: string) => projects.find((p) => p.id === id)?.data.title ??
 
 // Las 5 entradas más recientes de todos los proyectos
 const updates = (await getCollection("log"))
-  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime() || b.id.localeCompare(a.id))
   .slice(0, 5)
   .map((entry) => {
     const [projectId, slug] = entry.id.split("/");
